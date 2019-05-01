@@ -1,0 +1,116 @@
+library ieee;
+use ieee.std_logic_1164.all;
+
+entity datapath1 is
+	generic (
+        WIDTH : positive := 16);
+  port(
+	 clk    : in  std_logic;
+    rst    : in  std_logic;
+    x    : in  std_logic_vector(WIDTH-1 downto 0);
+    y    : in  std_logic_vector(WIDTH-1 downto 0);
+    output : out std_logic_vector(WIDTH-1 downto 0);
+	 
+	 x_sel : in  std_logic;
+	 y_sel : in  std_logic;
+	 x_en  : in  std_logic;
+	 y_en  : in  std_logic;
+	 output_en  : in  std_logic;
+	 x_lt_y : out  std_logic;
+	 x_ne_y : out  std_logic);
+	 
+end datapath1;
+
+architecture PATH of datapath1 is 
+
+	signal x_mux_out : std_logic_vector(WIDTH-1 downto 0);
+	signal y_mux_out : std_logic_vector(WIDTH-1 downto 0);
+	signal x_sub_out : std_logic_vector(WIDTH-1 downto 0);
+	signal y_sub_out : std_logic_vector(WIDTH-1 downto 0);
+	signal tmpX_out  : std_logic_vector(WIDTH-1 downto 0);
+	signal tmpY_out  : std_logic_vector(WIDTH-1 downto 0);
+	
+begin 
+
+	U_MUX_X : entity work.mux2x1 
+		generic map ( width => width) 
+			
+			port map( 
+				in1 => x_sub_out, 
+				in2 => x,
+				sel => x_sel,
+				output => x_mux_out); 
+				
+	U_MUX_Y : entity work.mux2x1 
+		generic map ( width => width) 
+			
+			port map( 
+				in1 => y_sub_out, 
+				in2 => y,
+				sel => y_sel,
+				output => y_mux_out);
+				
+	U_REG_X : entity work.reg 
+		generic map ( width => width) 
+			
+			port map( 
+				clk => clk, 
+				rst => rst, 
+				load => x_en,
+				input => x_mux_out,
+				output => tmpX_out); 
+				
+	U_REG_Y : entity work.reg 
+		generic map ( width => width) 
+			
+			port map( 
+				clk => clk, 
+				rst => rst, 
+				load => y_en,
+				input => y_mux_out,
+				output => tmpY_out); 
+				
+	U_SUB_X : entity work.sub 
+		generic map ( width => width) 
+			
+			port map( 
+				in1 => tmpX_out, 
+				in2 => tmpY_out,
+				output => x_sub_out);
+			
+		
+	U_SUB_Y : entity work.sub 
+		generic map ( width => width) 
+			
+			port map( 
+				in1 => tmpY_out, 
+				in2 => tmpX_out,
+				output => y_sub_out); 
+			
+		
+	U_COMP : entity work.comp 
+		generic map ( width => width) 
+		
+			port map( 
+				in1 => tmpX_out,
+				in2 => tmpY_out,
+				lt => x_lt_y,
+				neq => x_ne_y); 
+				
+	U_REG_OUT : entity work.reg 
+		generic map ( width => width) 
+			
+			port map( 
+				clk => clk, 
+				rst => rst, 
+				load => output_en,
+				input => tmpX_out,
+				output => output); 
+				
+end PATH; 
+				
+				
+				
+				
+				
+				

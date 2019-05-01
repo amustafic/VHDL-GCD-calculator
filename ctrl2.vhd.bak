@@ -1,0 +1,137 @@
+library ieee;
+use ieee.std_logic_1164.all;
+use ieee.numeric_std.all;
+
+entity ctrl2 is
+	generic (
+        WIDTH : positive := 16);
+  port(
+	 clk 		  : in  std_logic;
+	 rst 		  : in  std_logic;  
+    x_lt_y    : in  std_logic;
+    x_ne_y    : in  std_logic;
+	 go		  : in  std_logic;
+	 done      : out std_logic; 
+	 mux_selx  : out std_logic; 
+	 mux_sely  : out std_logic;  
+    x_sel 	  : out std_logic;
+	 y_sel	  : out std_logic; 
+	 x_en		  : out std_logic;
+	 y_en		  : out std_logic;
+	 output_en : out std_logic);
+end ctrl2;
+
+architecture CTRL of ctrl2 is 
+	type STATE_TYPE is (S_START, S_INIT, S_LOOP, S_DONE, S_WAIT);
+	signal state, next_state : STATE_TYPE;
+	
+begin 
+
+process (clk, rst) 
+	begin 
+		if (rst = '1') then 
+			
+			--done <= '0'; 
+			state <= S_START; 
+			
+		elsif (clk'event and clk = '1') then 
+		 
+			state <= next_state; 
+			
+		end if; 
+	end process; 
+
+process (state, go, x_lt_y, x_ne_y) 
+	begin
+			output_en <= '0';
+			done <= '0'; 	
+			x_en <= '0'; 
+			x_sel <= '0'; 
+			y_sel <= '0'; 
+			y_en <= '0';
+			mux_selx <= '0'; 
+			mux_sely <= '0'; 
+	
+		case state is 
+		
+		when S_START => 
+			output_en <= '0';
+			done <= '0'; 	
+			x_en <= '0'; 
+			x_sel <= '0'; 
+			y_sel <= '0'; 
+			y_en <= '0';
+			mux_selx <= '0'; 
+			mux_sely <= '0'; 
+		
+			
+			if (go = '1') then 
+				next_state <= S_INIT;
+			else 
+				next_state <= S_START;
+			end if; 
+			
+		when S_INIT => 
+		
+			done <= '0';  
+			output_en <= '0'; 
+			x_sel <= '1'; 
+			y_sel <= '1'; 
+			x_en <= '1';  
+			y_en <= '1'; 
+			next_state <= S_LOOP; 
+			
+		when S_LOOP => 
+			
+			--all loads to 0 
+			
+			if (x_ne_y = '1') then 
+				if (x_lt_y ='1') then 
+				
+					mux_selx <= '1'; 
+					mux_sely <= '0'; 
+					output_en <= '0';	
+					x_en <= '0'; 
+					y_sel <= '0'; 
+					y_en <= '1'; 
+					next_state <= S_LOOP;  
+				else 
+				
+					mux_selx <= '0'; 
+					mux_sely <= '1'; 
+					output_en <= '0'; 
+					y_en <= '0'; 
+					x_sel <= '0'; 
+					x_en <= '1'; 
+					next_state <= S_LOOP;  
+				end if; 
+			else 
+				output_en <= '1';
+				 
+				next_state <= S_DONE; 
+			end if; 
+			
+		when S_DONE => 
+		
+		   done <= '1'; 
+			x_en <= '0'; 
+			y_en <= '0';  
+			
+			if (go = '0') then 
+				next_state <= S_WAIT; 
+ 
+			end if;
+		
+		when S_WAIT => 
+			
+			if (go = '1') then 
+				next_state <= S_INIT; 
+
+			end if;
+			
+		when others => null; 
+			
+			
+		end case; 
+	end process; 
+end CTRL; 			
